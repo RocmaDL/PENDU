@@ -1,0 +1,13 @@
+{
+  "java.project.sourcePaths": ["src", "img"],
+  "java.project.referencedLibraries": [
+    "lib/javafx-graphics-11.jar",
+    "lib/javafx-media-11.jar",
+    "lib/javafx-fxml-11.jar",
+    "lib/javafx-swing-11.jar",
+    "lib/javafx-web-11.jar",
+    "lib/javafx-controls-11.jar",
+    "lib/javafx-base-11.jar"
+  ],
+  "java.project.outputPath": "bin"
+}
