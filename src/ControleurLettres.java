@@ -42,5 +42,6 @@ public class ControleurLettres implements EventHandler<ActionEvent> {
         System.out.println("Lettre : " + lettre);
         this.modelePendu.essaiLettre(lettre.charAt(0));
         this.vuePendu.getClavier().desactiveTouches(this.modelePendu.getLettresEssayees());
+        this.vuePendu.majAffichage();
     }
 }

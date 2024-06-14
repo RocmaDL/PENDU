@@ -10,13 +10,9 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
-import javafx.scene.control.Tooltip;
-import javafx.scene.control.TitledPane;
-import javafx.scene.layout.Region;
 import javafx.scene.text.TextAlignment;
-import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonBar.ButtonData;
-import javafx.scene.control.ButtonType;
+
 import java.util.List;
 import java.util.Arrays;
 import java.io.File;
@@ -96,7 +92,7 @@ public class Pendu extends Application {
         this.lesImages = new ArrayList<Image>();
         this.chargerImages("./img");
         // A terminer d'implementer
-        this.clavier = new Clavier("AZERTYUIOPQSDFGHJKLMWXCVBN", new ControleurLettres(this.modelePendu, this));
+        this.chrono = new Chronometre();
     }
 
     /**
@@ -131,6 +127,10 @@ public class Pendu extends Application {
         boutonMaison.setMaxWidth(30.0);
         boutonMaison.setMaxHeight(30.0);
 
+        boutonMaison.setId("maison");
+
+        boutonMaison.setOnAction(new ControleurLancerPartie(modelePendu, this));
+
         BorderPane bTop = new BorderPane();
         bTop.setLeft(titre);
         bTop.setRight(new HBox(boutonParametres, boutonMaison, boutonInformation));
@@ -152,8 +152,41 @@ public class Pendu extends Application {
      */
     private Pane fenetreJeu() {
         // A implementer
-        SceneGame sceneGame = new SceneGame("MALIEN", "Facile", "AZERTYUIOPQSDFGHJKLMWXCVBN", 4, clavier);
-        return sceneGame;
+        BorderPane scene = new BorderPane();
+        // Mise en place du centre
+        VBox center = new VBox();
+        Text tfMotATrouve = new Text(this.modelePendu.getMotCrypte());
+        tfMotATrouve.setFont(Font.font("Arial", 20));
+        int tentatives = this.modelePendu.getNbErreursMax() - this.modelePendu.getNbErreursRestants();
+        System.out.println(tentatives);
+        ImageView img = new ImageView(new Image(
+                "pendu" + tentatives + ".png"));
+        ProgressBar pBar = new ProgressBar(tentatives / Double.valueOf(this.modelePendu.getNbErreursMax()));
+        System.out.println(tentatives / 10);
+        this.clavier = new Clavier("AZERTYUIOPQSDFGHJKLMWXCVBN", new ControleurLettres(this.modelePendu, this));
+        clavier.desactiveTouches(this.modelePendu.getLettresEssayees());
+        center.getChildren().addAll(tfMotATrouve, img, pBar, clavier);
+        scene.setCenter(center);
+        // Mise en place de la partie droite
+        VBox right = new VBox();
+        String niveau = "";
+        if (this.modelePendu.getNiveau() == MotMystere.FACILE) {
+            niveau = "Facile";
+        } else if (this.modelePendu.getNiveau() == MotMystere.MOYEN) {
+            niveau = "Moyen";
+        } else if (this.modelePendu.getNiveau() == MotMystere.DIFFICILE) {
+            niveau = "Difficile";
+        } else if (this.modelePendu.getNiveau() == MotMystere.EXPERT) {
+            niveau = "Expert";
+        }
+        Text tfDifficulte = new Text("Niveau " + niveau);
+        TitledPane tBox = new TitledPane("Chronomètre", new Text("00:00")); // ! A connecter au chrono
+        Button btnNewMot = new Button("Nouveau mot");
+        btnNewMot.setId("rejouer");
+        btnNewMot.setOnAction(new ControleurLancerPartie(this.modelePendu, this));
+        right.getChildren().addAll(tfDifficulte, tBox, btnNewMot);
+        scene.setRight(right);
+        return scene;
     }
 
     // /**
@@ -163,8 +196,46 @@ public class Pendu extends Application {
     private Pane fenetreAccueil() {
         this.bJouer = new Button("Lancer une partie");
         this.bJouer.setOnAction(new ControleurLancerPartie(this.modelePendu, this));
-        SceneHome sceneHome = new SceneHome(this.bJouer);
-        return sceneHome;
+        this.bJouer.setId("lancer");
+        GridPane scene = new GridPane();
+        scene.add(bJouer, 0, 0);
+
+        final ToggleGroup group = new ToggleGroup();
+        RadioButton rb1 = new RadioButton("Facile");
+        RadioButton rb2 = new RadioButton("Médium");
+        RadioButton rb3 = new RadioButton("Difficile");
+        RadioButton rb4 = new RadioButton("Expert");
+
+        rb1.setOnAction(new ControleurNiveau(this.modelePendu));
+        rb2.setOnAction(new ControleurNiveau(this.modelePendu));
+        rb3.setOnAction(new ControleurNiveau(this.modelePendu));
+        rb4.setOnAction(new ControleurNiveau(this.modelePendu));
+
+        rb1.setToggleGroup(group);
+        rb2.setToggleGroup(group);
+        rb3.setToggleGroup(group);
+        rb4.setToggleGroup(group);
+
+        if (this.modelePendu.getNiveau() == MotMystere.FACILE) {
+            rb1.setSelected(true);
+            this.modelePendu.setNiveau(MotMystere.FACILE);
+        } else if (this.modelePendu.getNiveau() == MotMystere.MOYEN) {
+            rb2.setSelected(true);
+            this.modelePendu.setNiveau(MotMystere.MOYEN);
+        } else if (this.modelePendu.getNiveau() == MotMystere.DIFFICILE) {
+            rb3.setSelected(true);
+            this.modelePendu.setNiveau(MotMystere.DIFFICILE);
+        } else if (this.modelePendu.getNiveau() == MotMystere.EXPERT) {
+            rb4.setSelected(true);
+            this.modelePendu.setNiveau(MotMystere.EXPERT);
+        }
+
+        VBox radioBox = new VBox();
+        radioBox.getChildren().addAll(rb1, rb2, rb3, rb4);
+
+        TitledPane tBox = new TitledPane("Niveau de difficulté", radioBox);
+        scene.add(tBox, 0, 1);
+        return scene;
     }
 
     /**
@@ -183,11 +254,13 @@ public class Pendu extends Application {
     public void modeAccueil() {
         this.panelCentral.setCenter(this.fenetreAccueil());
         this.scene.setRoot(this.panelCentral);
+        this.chrono.stop();
     }
 
-    public void modeJeu() {s
+    public void modeJeu() {
         this.panelCentral.setCenter(this.fenetreJeu());
         this.scene.setRoot(this.panelCentral);
+        this.chrono.start();
     }
 
     public void modeParametres() {
@@ -197,13 +270,24 @@ public class Pendu extends Application {
     /** lance une partie */
     public void lancePartie() {
         // A implementer
+        this.modelePendu = new MotMystere("/usr/share/dict/french", 3, 10, this.modelePendu.getNiveau(), 10);
     }
 
     /**
      * raffraichit l'affichage selon les données du modèle
      */
     public void majAffichage() {
+        System.out.println(this.modelePendu.getMotATrouve());
         // A implementer
+        modeJeu();
+        if (this.modelePendu.gagne()) {
+            Alert alert = popUpMessageGagne();
+            alert.showAndWait();
+        } else if (this.modelePendu.perdu()) {
+            Alert alert = popUpMessagePerdu();
+            alert.showAndWait();
+        }
+
     }
 
     /**
@@ -225,20 +309,37 @@ public class Pendu extends Application {
 
     public Alert popUpReglesDuJeu() {
         // A implementer
+        String messageTitre = "Règles du jeu";
+        String message = "Le jeu du pendu consiste à deviner un mot en proposant des lettres.\n"
+                + "Le joueur a droit à un certain nombre d'erreurs avant de perdre la partie.\n"
+                + "Le nombre d'erreurs est défini par le niveau de difficulté choisi.\n"
+                + "Le joueur peut choisir un niveau de difficulté parmi les 4 proposés.\n"
+                + "Le joueur peut relancer une partie à tout moment.\n" + "Bonne chance!";
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setHeaderText(messageTitre);
+        alert.setContentText(message);
         return alert;
     }
 
     public Alert popUpMessageGagne() {
         // A implementer
+        String messageTitre = "Vous avez gagné!";
+        String message = "Bravo! Vous avez trouvé le mot: " + this.modelePendu.getMotATrouve();
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setHeaderText(messageTitre);
+        alert.setContentText(message);
         return alert;
     }
 
     public Alert popUpMessagePerdu() {
         // A implementer
+        String messageTitre = "Vous avez perdu!";
+        String message = "Vous avez perdu" + "\n" + "Le mot était: " + this.modelePendu.getMotATrouve();
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setHeaderText(messageTitre);
+        alert.setContentText(message);
         return alert;
+
     }
 
     /**
@@ -252,7 +353,7 @@ public class Pendu extends Application {
         this.stage.setTitle("IUTEAM'S - La plateforme de jeux de l'IUTO");
         this.stage.setScene(this.laScene());
 
-        this.modeJeu();
+        this.modeAccueil();
         this.stage.show();
     }
 
